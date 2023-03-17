@@ -21,9 +21,9 @@ jobs:
     - name: Login to Docker Hub
       uses: docker/login-action@v2
       with:
-        registry: us-east1-docker.pkg.dev
-        username: _json_key_base64
-        password: ${{ secrets.TC_GAR_JSON_KEY }}
+        registry: public.ecr.aws
+        username: ${{ secrets.TC_ACCESS_KEY }}
+        password: ${{ secrets.TC_SECRET_KEY }}
 
     - name: go-mod verify
       run: go mod verify
@@ -59,4 +59,4 @@ jobs:
         platforms: linux/amd64,linux/arm/v7,linux/arm64,linux/ppc64le,linux/s390x
         # Only push if we are publishing a release
         push: true
-        tags: us-east1-docker.pkg.dev/testcontainers-oss/testcontainers/ryuk:${{ github.event.release.tag_name }}
+        tags: public.ecr.aws/r3g4e1o9/testcontainers/ryuk:${{ github.event.release.tag_name }}
