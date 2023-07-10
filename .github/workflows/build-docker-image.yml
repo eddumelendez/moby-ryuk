@@ -53,6 +53,12 @@ jobs:
     - name: Buildx inspect
       run: docker buildx inspect
 
+    - name: Extract Docker metadata
+      id: meta
+      uses: docker/metadata-action@v4.4.0
+      with:
+        images: testcontainers/ryuk
+
     - name: Build image
       uses: docker/build-push-action@v3
       with:
@@ -60,5 +66,31 @@ jobs:
         file: ./Dockerfile
         platforms: linux/amd64,linux/arm/v7,linux/arm64,linux/ppc64le,linux/s390x
         push: false
-        # Use a 'temp' tag, that won't be pushed, for non-release builds
-        tags: testcontainers/ryuk:${{ github.event.release.tag_name || 'temp' }}
+        tags: ${{ steps.meta.outputs.tags }}
+
+    - name: Analyze for critical and high CVEs
+      id: docker-scout-cves
+      uses: docker/scout-action@v0.19.0
+      with:
+        command: cves
+        image: ${{ steps.meta.outputs.tags }}
+        sarif-file: sarif.output.json
+        summary: true
+
+    - name: Upload SARIF result
+      id: upload-sarif
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: sarif.output.json
+
+    - name: Compare to deployed image
+      id: docker-scout-compare
+      if: ${{ github.event_name == 'pull_request' }}
+      uses: docker/scout-action@v0.19.0
+      with:
+        command: compare
+        image: ${{ steps.meta.outputs.tags }}
+        only-severities: critical,high
+        to-stream: prod
+        exit-code: true
+        summary: true
